@@ -1,0 +1,23 @@
+{
+	"name": "loggins",
+	"description": "An extensible and simple-to-use D logging library",
+	"copyright": "Copyright © 2014, Cameron",
+	"authors": ["Cameron \"Herringway\" Ross"],
+	"license": "MIT",
+	"targetType": "library",
+	"dependencies": {
+		"din": "~master"
+	},
+	"configurations": [
+		{
+			"name": "default",
+			"targetType": "library",
+			"excludedSourceFiles": ["source/g15logger.d"]
+		},
+		{
+			"name": "g15",
+			"targetType": "library",
+			"versions": ["G15"]
+		}
+	]
+}
