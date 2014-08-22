@@ -1,12 +1,12 @@
+module targets.pushlogger;
 private import common;
-private import std.string : format;
-private import std.stdio;
-private import din;
 public import din : pushService;
 class PushLogger : Logger {
+	private import din : notification, Din;
 	private Din din;
 	private string appName;
-	public void Log(LogEntry line) nothrow @trusted {
+	public @property LoggingLevel minLevel(LoggingLevel inLevel) nothrow @safe pure { return LoggingLevel.Results; }
+	shared synchronized public void Log(LogEntry line) nothrow @trusted {
 		if (line.level != LoggingLevel.Results)
 			return;
 		scope(failure) return;
@@ -15,7 +15,7 @@ class PushLogger : Logger {
 		notification.message = line.msg;
 		notification.apptitle = appName;
 		notification.priority = 0;
-		din.send(notification);
+		(cast(Din)din).send(notification);
 	}
 	public void addNotifier(pushService service, string APIKey, string[] targets) {
 		din.addNotifier(service, APIKey, targets);

@@ -4,20 +4,10 @@
 	"copyright": "Copyright © 2014, Cameron",
 	"authors": ["Cameron \"Herringway\" Ross"],
 	"license": "MIT",
+	"libs-linux": ["systemd-journal"],
 	"targetType": "library",
 	"dependencies": {
-		"din": "~master"
-	},
-	"configurations": [
-		{
-			"name": "default",
-			"targetType": "library",
-			"excludedSourceFiles": ["source/g15logger.d"]
-		},
-		{
-			"name": "g15",
-			"targetType": "library",
-			"versions": ["G15"]
-		}
-	]
+		"din": "~master",
+		"lcdee": {"version": "~master", "optional": true }
+	}
 }
