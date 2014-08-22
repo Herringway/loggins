@@ -69,13 +69,14 @@ class ConsoleLogger : Logger {
 		version(Posix) {
 			import core.sys.posix.sys.ioctl;
 			import std.stdio : stdin;
-			import std.exception : errnoEnforce, ErrnoException;
+			import std.exception : errnoEnforce, ErrnoException, collectException, assumeWontThrow;
+			version(FreeBSD) enum TIOCGWINSZ = 1074295912;
 			winsize w;
 			try {
-				errnoEnforce(ioctl(stdin.fileno(), TIOCGWINSZ, &w) == 0, "Fetching winsize failed");
+				errnoEnforce(ioctl(assumeWontThrow(stdin.fileno()), TIOCGWINSZ, &w) == 0, "Fetching winsize failed");
 				return w.ws_col;
-			} catch (ErrnoException e) {
-				stderr.writeln(e);
+			} catch (Exception e) {
+				collectException(stderr.writeln(e));
 				return defaultConsoleWidth;
 			}
 		}
