@@ -30,7 +30,7 @@ class ConsoleLogger : Logger {
 		return outputLevel = inLevel;
 	}
 	shared public void Log(LogEntry line) nothrow @trusted {
-		scope(failure) return;
+		import std.exception : collectException;
 		auto output = outLog;
 		if (line.level == LoggingLevel.Error)
 			output = errLog;
@@ -43,7 +43,7 @@ class ConsoleLogger : Logger {
 			clearline(output, line.level, consoleWidth);
 			wasRewind = true;
 		} else if (wasRewind) {
-			stdout.writeln();
+			collectException(stdout.writeln());
 			wasRewind = false;
 		}
 		output.Log(line);
@@ -69,6 +69,7 @@ class ConsoleLogger : Logger {
 		version(Posix) {
 			import core.sys.posix.sys.ioctl;
 			import std.stdio : stdin;
+			import std.exception : errnoEnforce, ErrnoException;
 			winsize w;
 			try {
 				errnoEnforce(ioctl(stdin.fileno(), TIOCGWINSZ, &w) == 0, "Fetching winsize failed");
