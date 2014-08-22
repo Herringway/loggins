@@ -42,7 +42,7 @@ class ConsoleLogger : Logger {
 		if ((line.flags & LoggingFlags.Rewind) != 0) {
 			clearline(output, line.level, consoleWidth);
 			wasRewind = true;
-		} else if (wasRewind) {
+		} else if ((line.level >= outputLevel) && wasRewind) {
 			collectException(stdout.writeln());
 			wasRewind = false;
 		}
