@@ -19,7 +19,6 @@ version(unittest) {
 		delete(unitTestHTMLLogger);
 	}
 }
-public enum Loggers {Console, HTML, Journald, G15};
 private shared Logger[] instances;
 private shared LogEntry[] lineBuffer = [];
 public T addLogger(T)(T newLogger) {
@@ -61,57 +60,40 @@ private auto getTime() nothrow @trusted {
 	scope(failure) return SysTime();
 	return Clock.currTime();
 }
-private void LogC(string file = __FILE__, int line = __LINE__, T...)(LoggingLevel level, LoggingFlags mode, string fmt, T args) nothrow @trusted {
-	import std.string : format;
-	try{
-		Log!(file,line)(level, mode, format(fmt, args));
-	} catch (Exception e) { try { Log!(file, line)(LoggingLevel.Error, mode, format("Error formatting %s at %s:%d", fmt, file, line)); } catch (Exception) { } }
-}
-public void LogError(LoggingFlags mode = LoggingFlags.NoCut | LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @safe {
-	LogC!(file, line)(LoggingLevel.Error, mode, fmt, args);
-}
-public void LogWarning(LoggingFlags mode = LoggingFlags.NoCut | LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(string fmt, auto ref T args) nothrow @safe {
-	LogC!(file, line)(LoggingLevel.Warning, mode, fmt, args);
-}
-public void LogResults(LoggingFlags mode = LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(string fmt, auto ref T args) nothrow @safe {
-	LogC!(file, line)(LoggingLevel.Results, mode, fmt, args);
-}
-public void LogInfo(LoggingFlags mode = LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(string fmt, auto ref T args) nothrow @safe {
-	LogC!(file, line)(LoggingLevel.Info, mode, fmt, args);
-}
-public void LogDiagnostic(LoggingFlags mode = LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @safe {
-	LogC!(file, line)(LoggingLevel.Diagnostic, mode, fmt, args);
-}
-public void LogDebug(LoggingFlags mode = LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @safe {
-	LogC!(file, line)(LoggingLevel.Debug, mode, fmt, args);
-}
-public void LogDebugV(LoggingFlags mode = LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @safe {
-	LogC!(file, line)(LoggingLevel.VerboseDebug, mode, fmt, args);
-}
-public void LogTrace(LoggingFlags mode = LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @safe {
-	LogC!(file, line)(LoggingLevel.Trace, mode, fmt, args);
+alias LogError		= LogFunction!(LoggingLevel.Error);
+alias LogWarning	= LogFunction!(LoggingLevel.Warning);
+alias LogResults	= LogFunction!(LoggingLevel.Results);
+alias LogInfo		= LogFunction!(LoggingLevel.Info);
+alias LogDiagnostic	= LogFunction!(LoggingLevel.Diagnostic);
+alias LogDebug		= LogFunction!(LoggingLevel.Debug);
+alias LogDebugV		= LogFunction!(LoggingLevel.VerboseDebug);
+alias LogTrace 		= LogFunction!(LoggingLevel.Trace);
+template LogFunction(LoggingLevel level) {
+	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @trusted {
+		LogFunction!(file,line)(true, fmt, args);
+	}
+	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(LoggingFlags mode, string fmt, T args) nothrow @trusted {
+		LogFunction!(file,line)(mode, true, fmt, args);
+	}
+	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(bool expr, string fmt, T args) nothrow @trusted {
+		LoggingFlags mode = LoggingFlags.NewLine;
+		static if (level >= LoggingLevel.Warning)
+			mode |= LoggingFlags.NoCut;
+		LogFunction!(file,line)(mode, expr, fmt, args);
+	}
+	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(LoggingFlags mode, bool expr, string fmt, T args) nothrow @trusted {
+		import std.string : format;
+		import std.exception : collectException;
+		if (expr) {
+			try {
+				Log!(file,line)(level, mode, format(fmt, args));
+			} catch (Exception e) { collectException(Log!(file, line)(LoggingLevel.Error, mode, format("Error formatting %s at %s:%d", fmt, file, line))); }
+		}
+	}
 }
 public void LogException(LoggingFlags mode = LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(Exception e, string fmt, T args) nothrow @trusted {
-	LogError!mode(fmt, args);
-	LogDebug!(LoggingFlags.NoCut)("Thrown from %s:%s", e.file, e.line);
-	scope(failure) return;
-	LogDebug!(LoggingFlags.NoCut)(e.info.toString());
-}
-class LimitLogger : Logger {
-	shared Logger wrappedLogger;
-	private LoggingLevel outputLevel = LoggingLevel.Info;
-	private LoggingLevel maxLevel;
-	public void init(string params) nothrow @safe pure { }
-	public @property LoggingLevel minLevel(LoggingLevel inLevel) @safe nothrow pure {
-		return outputLevel = inLevel;
-	}
-	shared synchronized public void Log(LogEntry line) nothrow @trusted {
-		if ((line.level < outputLevel) || (line.level > maxLevel))
-			return;
-		wrappedLogger.Log(line);
-	}
-	this(shared Logger inWrap, LoggingLevel inMax) nothrow @safe pure {
-		wrappedLogger = inWrap;
-		maxLevel = inMax;
-	}
+	import std.exception : collectException;
+	LogError(mode, fmt, args);
+	LogDebug(LoggingFlags.NoCut, "Thrown from %s:%s", e.file, e.line);
+	collectException(LogDebug(LoggingFlags.NoCut, e.info.toString()));
 }
