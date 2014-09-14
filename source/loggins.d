@@ -5,8 +5,8 @@ public {
 	import targets.htmllogger;
 	import targets.pushlogger;
 	import targets.consolelogger;
-	version(journald) import targets.journaldlogger;
-	version(G15) import targets.g15logger;
+	version(linux) import targets.journaldlogger;
+	version(Have_lcdee) import targets.g15logger;
 }
 version(unittest) {
 	HTMLLogger unitTestHTMLLogger;
@@ -69,8 +69,20 @@ alias LogDebug		= LogFunction!(LoggingLevel.Debug);
 alias LogDebugV		= LogFunction!(LoggingLevel.VerboseDebug);
 alias LogTrace 		= LogFunction!(LoggingLevel.Trace);
 template LogFunction(LoggingLevel level) {
+	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(Exception e, string fmt, T args) nothrow @trusted {
+		import std.string : format;
+		import std.exception : assumeWontThrow;
+		assumeWontThrow(LogFunction!(file, line)(true, format("%s: %s", fmt, e.msg), args));
+		debug { //these don't produce useful output outside debug builds anyway
+			LogFunction!(file, line)(true, "Thrown from %s:%s", e.file, e.line);
+			assumeWontThrow(LogFunction!(file, line)(true, "%s", e.info.toString()));
+		}
+	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @trusted {
-		LogFunction!(file,line)(true, fmt, args);
+		static if (args.length > 0)
+			LogFunction!(file,line)(true, fmt, args);
+		else 
+			LogFunction!(file,line)(true, "%s", fmt);
 	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(LoggingFlags mode, string fmt, T args) nothrow @trusted {
 		LogFunction!(file,line)(mode, true, fmt, args);
@@ -83,17 +95,11 @@ template LogFunction(LoggingLevel level) {
 	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(LoggingFlags mode, bool expr, string fmt, T args) nothrow @trusted {
 		import std.string : format;
-		import std.exception : collectException;
+		import std.exception : assumeWontThrow;
 		if (expr) {
 			try {
 				Log!(file,line)(level, mode, format(fmt, args));
-			} catch (Exception e) { collectException(Log!(file, line)(LoggingLevel.Error, mode, format("Error formatting %s at %s:%d", fmt, file, line))); }
+			} catch (Exception e) { assumeWontThrow(Log!(file, line)(LoggingLevel.Error, mode, format("Error formatting %s at %s:%d", fmt, file, line))); }
 		}
 	}
-}
-public void LogException(LoggingFlags mode = LoggingFlags.NewLine, string file = __FILE__, int line = __LINE__, T...)(Exception e, string fmt, T args) nothrow @trusted {
-	import std.exception : collectException;
-	LogError(mode, fmt, args);
-	LogDebug(LoggingFlags.NoCut, "Thrown from %s:%s", e.file, e.line);
-	collectException(LogDebug(LoggingFlags.NoCut, e.info.toString()));
 }
