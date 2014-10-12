@@ -6,8 +6,9 @@
 	"license": "MIT",
 	"libs-linux": ["systemd"],
 	"targetType": "library",
+	"version": "0.1.0",
 	"dependencies": {
-		"din": "~master",
-		"lcdee": {"version": "~master", "optional": true }
+		"din": ">=0.1.0",
+		"lcdee": {"version": ">=0.1.0", "optional": true }
 	}
 }
