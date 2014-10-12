@@ -25,7 +25,7 @@ public T addLogger(T)(T newLogger) {
 	instances ~= cast(shared T)newLogger;
 	return newLogger;
 }
-public void Log(string file = __FILE__, int inLine = __LINE__)(LoggingLevel level, LoggingFlags mode, string text, string title = "") nothrow @trusted {
+private void Log(string file = __FILE__, int inLine = __LINE__)(LoggingLevel level, LoggingFlags mode, string text, string title = "") nothrow @trusted {
 	import core.thread : Thread;
 	scope(failure) return;
 
@@ -45,20 +45,26 @@ public void Log(string file = __FILE__, int inLine = __LINE__)(LoggingLevel leve
 			lineBuffer ~= cast(shared)line;
 		else {
 			foreach (bufferedLine; lineBuffer)
-				Log(cast(LogEntry)bufferedLine);
+				foreach (instance; instances)
+					instance.Log(cast()bufferedLine);
 			lineBuffer = [];
-			Log(line);
+			foreach (instance; instances)
+				instance.Log(line);
 		}
 	}
-}
-public void Log(LogEntry entry) nothrow @trusted {
-	foreach (instance; instances)
-		instance.Log(entry);
 }
 private auto getTime() nothrow @trusted {
 	import std.datetime : Clock, SysTime;
 	scope(failure) return SysTime();
 	return Clock.currTime();
+}
+public void LogNotification(string file = __FILE__, int inLine = __LINE__, T...)(string title, string fmt, T args) {
+	import std.string : format;
+	try {
+		Log!(file, inLine)(LoggingLevel.Results, LoggingFlags.NewLine, format(fmt, args), title);
+	} catch (Exception e) {
+		LogError!(file, inLine)("Error formatting format string: %s", e.msg);
+	}
 }
 alias LogError		= LogFunction!(LoggingLevel.Error);
 alias LogWarning	= LogFunction!(LoggingLevel.Warning);
@@ -102,4 +108,27 @@ template LogFunction(LoggingLevel level) {
 			} catch (Exception e) { assumeWontThrow(Log!(file, line)(LoggingLevel.Error, mode, format("Error formatting %s at %s:%d", fmt, file, line))); }
 		}
 	}
+}
+void setAssertLog() nothrow {
+	import core.exception : assertHandler;
+	assertHandler = &logAssertion;
+}
+void resetAssertLog() nothrow {
+	import core.exception : assertHandler;
+	assertHandler = null;
+}
+void logAssertion(string file, size_t line, string msg) nothrow {
+	import core.exception : AssertError;
+	import core.stdc.stdlib : exit;
+	import core.runtime : defaultTraceHandler;
+	resetAssertLog();
+	scope(exit) setAssertLog();
+	LogError("Assertion at %s:%s: %s", file, line, msg);
+	try { 
+		foreach(t; defaultTraceHandler(null))
+			LogError("%s", t);
+	} catch (Exception) {
+		assert(0, "Fatal error while logging assertion");
+	}
+	exit(1);
 }
