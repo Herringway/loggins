@@ -1,5 +1,6 @@
 module targets.journaldlogger;
 private import common;
+private import core.vararg;
 version(linux) {
 	extern(C) int sd_journal_print(int priority, const char* format, ...) nothrow;
 } else {
