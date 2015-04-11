@@ -2,7 +2,7 @@ module targets.pushlogger;
 private import common;
 public import din : pushService;
 class PushLogger : Logger {
-	private import din : notification, Din;
+	private import din : Notification, Din;
 	private Din din;
 	private string appName;
 	public @property LoggingLevel minLevel(LoggingLevel inLevel) nothrow @safe pure { return LoggingLevel.Results; }
@@ -10,11 +10,11 @@ class PushLogger : Logger {
 		if (line.level != LoggingLevel.Results)
 			return;
 		scope(failure) return;
-		auto notification = notification();
-		notification.title = line.title;
-		notification.message = line.msg;
-		notification.apptitle = appName;
-		notification.priority = 0;
+		auto notification = Notification();
+		notification.Title = line.title;
+		notification.Message = line.msg;
+		notification.AppTitle = appName;
+		notification.Priority = 0;
 		(cast(Din)din).send(notification);
 	}
 	public void addNotifier(pushService service, string APIKey, string[] targets) {
