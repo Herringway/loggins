@@ -25,7 +25,7 @@ public T addLogger(T)(T newLogger) {
 	instances ~= cast(shared T)newLogger;
 	return newLogger;
 }
-private void Log(string file = __FILE__, int inLine = __LINE__)(LoggingLevel level, LoggingFlags mode, string text, string title = "") nothrow @trusted {
+private void Log(LoggingLevel level, LoggingFlags mode, string text, string file, int inLine, string title = "") nothrow @trusted {
 	import core.thread : Thread;
 	scope(failure) return;
 
@@ -61,9 +61,9 @@ private auto getTime() nothrow @trusted {
 public void LogNotification(string file = __FILE__, int inLine = __LINE__, T...)(string title, string fmt, T args) {
 	import std.string : format;
 	try {
-		Log!(file, inLine)(LoggingLevel.Results, LoggingFlags.NewLine, format(fmt, args), title);
+		Log(LoggingLevel.Results, LoggingFlags.NewLine, format(fmt, args), file, inLine, title);
 	} catch (Exception e) {
-		LogError!(file, inLine)("Error formatting format string: %s", e.msg);
+		LogError("Error formatting format string: %s", e.msg);
 	}
 }
 alias LogError		= LogFunction!(LoggingLevel.Error);
@@ -78,10 +78,10 @@ template LogFunction(LoggingLevel level) {
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(Exception e, string fmt, T args) nothrow @trusted {
 		import std.string : format;
 		import std.exception : assumeWontThrow;
-		assumeWontThrow(LogFunction!(file, line)(true, format("%s: %s", fmt, e.msg), args));
+		assumeWontThrow(LogFunction!(file,line)(true, format("%s: %s", fmt, e.msg), args));
 		debug { //these don't produce useful output outside debug builds anyway
-			LogFunction!(file, line)(true, "Thrown from %s:%s", e.file, e.line);
-			assumeWontThrow(LogFunction!(file, line)(true, "%s", e.info.toString()));
+			LogFunction!(file,line)(true, "Thrown from %s:%s", e.file, e.line);
+			assumeWontThrow(LogFunction!(file,line)(true, "%s", e.info.toString()));
 		}
 	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @trusted {
@@ -91,22 +91,19 @@ template LogFunction(LoggingLevel level) {
 			LogFunction!(file,line)(true, "%s", fmt);
 	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(LoggingFlags mode, string fmt, T args) nothrow @trusted {
-		LogFunction!(file,line)(mode, true, fmt, args);
+		LogFunction!(file, line)(mode, true, fmt, args);
 	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(bool expr, string fmt, T args) nothrow @trusted {
 		LoggingFlags mode = LoggingFlags.NewLine;
 		static if (level >= LoggingLevel.Warning)
 			mode |= LoggingFlags.NoCut;
-		LogFunction!(file,line)(mode, expr, fmt, args);
+		LogFunction!(file, line)(mode, expr, fmt, args);
 	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(LoggingFlags mode, bool expr, string fmt, T args) nothrow @trusted {
 		import std.string : format;
-		import std.exception : assumeWontThrow;
-		if (expr) {
-			try {
-				Log!(file,line)(level, mode, format(fmt, args));
-			} catch (Exception e) { assumeWontThrow(Log!(file, line)(LoggingLevel.Error, mode, format("Error formatting %s at %s:%d", fmt, file, line))); }
-		}
+		import std.exception : ifThrown, assumeWontThrow;
+		if (expr)
+			assumeWontThrow(Log(level, mode, format(fmt, args).ifThrown(format("Error formatting %s at %s:%d", fmt, file, line)), file, line));
 	}
 }
 void setAssertLog() nothrow {
