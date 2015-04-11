@@ -2,6 +2,10 @@ module targets.journaldlogger;
 private import common;
 version(linux) {
 	extern(C) int sd_journal_print(int priority, const char* format, ...) nothrow;
+} else {
+	int sd_journal_print(int priority, const char* format, ...) nothrow {
+		return 0;
+	}
 }
 class JournaldLogger : Logger {
 	public @property LoggingLevel minLevel(LoggingLevel inLevel) nothrow @safe pure {
