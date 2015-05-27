@@ -7,7 +7,6 @@
 	"libs-linux": ["systemd"],
 	"targetType": "library",
 	"dependencies": {
-		"din": "~>0.1.0",
-		"lcdee": {"version": ">=0.1.0", "optional": true }
+		"din": "~>0.1.0"
 	}
 }

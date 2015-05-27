@@ -32,7 +32,7 @@ class ConsoleLogger : Logger {
 	shared public void Log(LogEntry line) nothrow @trusted {
 		import std.exception : collectException;
 		auto output = outLog;
-		if (line.level == LoggingLevel.Error)
+		if (line.level >= LoggingLevel.Error)
 			output = errLog;
 		if (((line.flags & LoggingFlags.NoCut) == 0) && (consoleWidth > 0) && (line.msg.length >= consoleWidth-1)) {
 			auto msg = line.msg[0..consoleWidth-2].dup;
@@ -43,7 +43,8 @@ class ConsoleLogger : Logger {
 			clearline(output, line.level, consoleWidth);
 			wasRewind = true;
 		} else if ((line.level >= outputLevel) && wasRewind) {
-			collectException(stdout.writeln());
+			if ((line.flags & LoggingFlags.NewLine) != 0)
+				collectException(stdout.writeln());
 			wasRewind = false;
 		}
 		output.Log(line);

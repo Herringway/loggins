@@ -76,12 +76,18 @@ alias LogDebugV		= LogFunction!(LoggingLevel.VerboseDebug);
 alias LogTrace 		= LogFunction!(LoggingLevel.Trace);
 template LogFunction(LoggingLevel level) {
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(Exception e, string fmt, T args) nothrow @trusted {
+		LoggingFlags mode = LoggingFlags.NewLine;
+		static if (level >= LoggingLevel.Warning)
+			mode |= LoggingFlags.NoCut;
+		LogFunction!(file, line)(mode, e, fmt, args);
+	}
+	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(LoggingFlags mode, Exception e, string fmt, T args) nothrow @trusted {
 		import std.string : format;
 		import std.exception : assumeWontThrow;
-		assumeWontThrow(LogFunction!(file,line)(true, format("%s: %s", fmt, e.msg), args));
+		assumeWontThrow(LogFunction!(file,line)(mode, true, format("%s: %s", fmt, e.msg), args));
 		debug { //these don't produce useful output outside debug builds anyway
 			LogFunction!(file,line)(true, "Thrown from %s:%s", e.file, e.line);
-			assumeWontThrow(LogFunction!(file,line)(true, "%s", e.info.toString()));
+			assumeWontThrow(LogFunction!(file,line)(mode, true, "%s", e.info.toString()));
 		}
 	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @trusted {

@@ -36,7 +36,7 @@ package struct LogEntry {
 		}
 	}
 }
-public enum RFC5424PriorityLevel : ubyte {Emergency, Alert, Critical, Error, Warning, Notice, Informational, Debug };
+public enum RFC5424PriorityLevel : ubyte { Emergency, Alert, Critical, Error, Warning, Notice, Informational, Debug };
 public enum LoggingLevel { Trace, VerboseDebug, Debug, Diagnostic, Info, Results, Warning, Error, Critical, Fatal, Emergency };
 public enum LoggingFlags { None = 0, Rewind = 1, NoCut = 2, NewLine = 4 };
 deprecated("Use LoggingLevel instead") alias logFlags = LoggingFlags;
