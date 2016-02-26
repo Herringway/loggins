@@ -1,6 +1,6 @@
 module targets.pushlogger;
 private import common;
-public import din : pushService;
+public import din : PushService;
 class PushLogger : Logger {
 	private import din : Notification, Din;
 	private Din din;
@@ -11,16 +11,16 @@ class PushLogger : Logger {
 			return;
 		scope(failure) return;
 		auto notification = Notification();
-		notification.Title = line.title;
-		notification.Message = line.msg;
-		notification.AppTitle = appName;
-		notification.Priority = 0;
+		notification.title = line.title;
+		notification.message = line.msg;
+		notification.appTitle = appName;
+		notification.priority = 0;
 		(cast(Din)din).send(notification);
 	}
-	public void addNotifier(pushService service, string APIKey, string[] targets) {
+	public void addNotifier(PushService service, string APIKey, string[] targets) {
 		din.addNotifier(service, APIKey, targets);
 	}
-	public void addNotifier(pushService service, string[] targets) {
+	public void addNotifier(PushService service, string[] targets) {
 		din.addNotifier(service, targets);
 	}
 	this(string appname) {
