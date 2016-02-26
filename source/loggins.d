@@ -16,7 +16,7 @@ version(unittest) {
 		addLogger(unitTestHTMLLogger).minLevel = LoggingLevel.Trace;
 	}
 	static ~this() {
-		delete(unitTestHTMLLogger);
+		destroy(unitTestHTMLLogger);
 	}
 }
 private shared Logger[] instances;
@@ -27,7 +27,6 @@ public T addLogger(T)(T newLogger) {
 }
 private void Log(LoggingLevel level, LoggingFlags mode, string text, string file, int inLine, string title = "") nothrow @trusted {
 	import core.thread : Thread;
-	scope(failure) return;
 
 	auto line = LogEntry();
 	line.level = level;
@@ -55,8 +54,10 @@ private void Log(LoggingLevel level, LoggingFlags mode, string text, string file
 }
 private auto getTime() nothrow @trusted {
 	import std.datetime : Clock, SysTime;
-	scope(failure) return SysTime();
-	return Clock.currTime();
+	try {
+		return Clock.currTime();
+	} catch (Exception)
+		return SysTime.min;
 }
 public void LogNotification(string file = __FILE__, int inLine = __LINE__, T...)(string title, string fmt, T args) {
 	import std.string : format;
@@ -93,7 +94,7 @@ template LogFunction(LoggingLevel level) {
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(string fmt, T args) nothrow @trusted {
 		static if (args.length > 0)
 			LogFunction!(file,line)(true, fmt, args);
-		else 
+		else
 			LogFunction!(file,line)(true, "%s", fmt);
 	}
 	void LogFunction(string file = __FILE__, int line = __LINE__, T...)(LoggingFlags mode, string fmt, T args) nothrow @trusted {
@@ -109,7 +110,15 @@ template LogFunction(LoggingLevel level) {
 		import std.string : format;
 		import std.exception : ifThrown, assumeWontThrow;
 		if (expr)
-			assumeWontThrow(Log(level, mode, format(fmt, args).ifThrown(format("Error formatting %s at %s:%d", fmt, file, line)), file, line));
+			assumeWontThrow({
+				string msg;
+				try {
+					msg = format(fmt, args);
+				} catch (Exception e) {
+					msg = format("Error formatting %s at %s:%d\n%s", fmt, file, line, e);
+				}
+				Log(level, mode, msg, file, line);
+			}());
 	}
 }
 void setAssertLog() nothrow {
@@ -127,7 +136,7 @@ void logAssertion(string file, size_t line, string msg) nothrow {
 	resetAssertLog();
 	scope(exit) setAssertLog();
 	LogError("Assertion at %s:%s: %s", file, line, msg);
-	try { 
+	try {
 		foreach(t; defaultTraceHandler(null))
 			LogError("%s", t);
 	} catch (Exception) {

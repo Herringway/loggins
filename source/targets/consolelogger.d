@@ -85,7 +85,10 @@ class ConsoleLogger : Logger {
 			import core.sys.windows.windows; 
 			CONSOLE_SCREEN_BUFFER_INFO csbiInfo; 
 			GetConsoleScreenBufferInfo(GetStdHandle(-11), &csbiInfo);
-			return csbiInfo.dwMaximumWindowSize.X;
+			if (csbiInfo.dwMaximumWindowSize.X > 0)
+				return csbiInfo.dwMaximumWindowSize.X;
+			else
+				return size_t.max;
 		} else
 			return defaultConsoleWidth;
 	}

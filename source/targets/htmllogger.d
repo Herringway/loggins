@@ -9,10 +9,13 @@ class HTMLLogger : Logger {
 	public @property LoggingLevel minLevel(LoggingLevel inLevel) @safe nothrow pure {
 		return outputLevel = inLevel;
 	}
-	this(string logpath) @trusted nothrow {
+	shared void init() @trusted nothrow {
+		import std.conv : to, text;
+		static initialized = false;
 		scope(failure) return;
-		handle = File(logpath, "w");
-		handle.writeln(`<html>
+		if (initialized)
+			return;
+		(cast(File)handle).writeln(`<html>
 	<head>
 		<title>HTML Log</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -51,7 +54,7 @@ class HTMLLogger : Logger {
 			form.menubar {
 				position: fixed;
 				bottom: 0px;
-				padding: 4pt; 
+				padding: 4pt;
 				width: 100%;
 				background-color: lightgray;
 				z-index: 1;
@@ -77,7 +80,7 @@ class HTMLLogger : Logger {
  					option.value = i;
  					sel.appendChild(option);
  				}
- 				sel.selectedIndex = 2;
+ 				sel.selectedIndex = `~outputLevel.to!uint.text~`;
 			}
 			window.onload = init;
 			function enableStyle(i){
@@ -106,7 +109,12 @@ class HTMLLogger : Logger {
 		</form>
 		<div class="log">
 		<div style="position: relative;"><div class="time">Time</div><div class="source">Source</div><div class="threadName">Thread</div><div class="message">Message</div></div>`);
-		handle.flush();
+		(cast(File)handle).flush();
+		initialized = true;
+	}
+	this(string logpath) @trusted nothrow {
+		scope(failure) return;
+		handle = File(logpath, "w");
 	}
 	@trusted nothrow ~this() {
 		scope(failure) return;
@@ -119,6 +127,7 @@ class HTMLLogger : Logger {
 	shared void Log(LogEntry line) nothrow @trusted {
 		import std.string : format;
 		import std.array;
+		init();
 		scope(failure) return;
 		string writestr = "";
 		if (line.thread)
